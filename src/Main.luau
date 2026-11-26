@@ -12,7 +12,7 @@ local SettingsWidget = require(script.Parent.Ui.SettingsWidget)
 
 local Main = {}
 
-Main.VERSION = "0.1.0"
+Main.VERSION = "0.1.1"
 
 function Main.start(plugin: Plugin, button: PluginToolbarButton?): () -> ()
 	Settings.init(plugin)
@@ -23,14 +23,16 @@ function Main.start(plugin: Plugin, button: PluginToolbarButton?): () -> ()
 		return function() end
 	end
 
-	local function dock(id: string, title: string, width: number, height: number): DockWidgetPluginGui
-		local info = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, width, height, 260, 140)
+	-- Windows start closed, except the main one when "Open when Studio starts" is on.
+	local function dock(id: string, title: string, width: number, height: number, open: boolean?): DockWidgetPluginGui
+		local info =
+			DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, open == true, true, width, height, 260, 140)
 		local widget = plugin:CreateDockWidgetPluginGui(id, info)
 		widget.Name = id
 		widget.Title = title
 		return widget
 	end
-	local main = dock("TracyLuau.Main", "Tracy-Luau", 300, 170)
+	local main = dock("TracyLuau.Main", "Tracy-Luau", 300, 170, Settings.get("AutoOpen"))
 	local settingsWindow = dock("TracyLuau.Settings", "Tracy-Luau - Settings", 360, 420)
 	local helpWindow = dock("TracyLuau.Help", "Tracy-Luau - Help", 360, 420)
 

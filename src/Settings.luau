@@ -4,6 +4,7 @@
 export type Key =
 	"Host"
 	| "Port"
+	| "AutoOpen"
 	| "AutoConnect"
 	| "CheckSetup"
 	| "Captures"
@@ -15,6 +16,7 @@ export type Key =
 local DEFAULTS: { [string]: any } = {
 	Host = "127.0.0.1",
 	Port = 8080,
+	AutoOpen = true,
 	AutoConnect = false,
 	CheckSetup = true,
 	Captures = true,

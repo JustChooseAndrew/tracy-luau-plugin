@@ -118,12 +118,15 @@ local function globalTab(p: Palette): { Instance }
 		end)
 	end
 	return {
-		section(p, 1, "1. Connection", {
+		section(p, 1, "1. General", {
+			row(p, 1, "Open when Studio starts", "Show this window when Studio opens a place.", toggle("AutoOpen")),
+		}),
+		section(p, 2, "2. Connection", {
 			row(p, 1, "Bridge host", "Where tracy-roblox-bridge runs. Use 127.0.0.1.", field(p, "Host", host)),
 			row(p, 2, "Bridge port", "The bridge's --port (default 8080).", field(p, "Port", port)),
 			row(p, 3, "Connect automatically", "Connect when the plugin starts.", toggle("AutoConnect")),
 		}),
-		section(p, 2, "2. Place setup", {
+		section(p, 3, "3. Place setup", {
 			row(
 				p,
 				1,
@@ -132,7 +135,7 @@ local function globalTab(p: Palette): { Instance }
 				toggle("CheckSetup")
 			),
 		}),
-		section(p, 3, "3. Captures", {
+		section(p, 4, "4. Captures", {
 			row(
 				p,
 				1,

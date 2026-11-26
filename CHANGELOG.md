@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- **Opens when Studio starts:** the main window opens automatically, like other sync
+  and tooling plugins. Turn it off in Settings → General.
+
 ## 0.1.0
 
 The first release.
