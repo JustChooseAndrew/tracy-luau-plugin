@@ -14,6 +14,8 @@ local FAILURES_BEFORE_LOST = 3
 
 type View = "address" | "connecting" | "error" | "connected"
 
+type Row = { frame: Frame, dot: Frame, name: TextLabel, detail: TextLabel, active: boolean }
+
 export type Options = {
 	widget: DockWidgetPluginGui,
 	version: string,
@@ -39,16 +41,18 @@ function MainWidget.new(options: Options): () -> ()
 	local status: Bridge.Status? = nil
 	local captureNote: string? = nil
 	local pendingRequest: string? = nil
-	local generation = 0 -- bumped on connect/disconnect, so a stale poll loop stops
+	local generation = 0 -- bumped on connect/disconnect, so a stale loop stops
 	local alive = true
 
-	local page: ScrollingFrame? = nil
+	local holder: CanvasGroup? = nil
 	local live: { [string]: any } = {}
-	local render: () -> ()
+	local rows: { [string]: Row } = {}
+	local render: (fadeIn: boolean?) -> ()
 
 	local function setView(next: View)
+		local changed = next ~= view
 		view = next
-		render()
+		render(changed)
 	end
 
 	local function logo(p: Theme.Palette): Instance
@@ -58,7 +62,7 @@ function MainWidget.new(options: Options): () -> ()
 				BackgroundTransparency = 1,
 				Image = id,
 				ScaleType = Enum.ScaleType.Fit,
-				Size = UDim2.new(1, -60, 0, 30),
+				Size = UDim2.new(1, -64, 1, 0),
 			})
 		end
 		local blue = hex(p.Accent)
@@ -68,7 +72,7 @@ function MainWidget.new(options: Options): () -> ()
 			{
 				FontFace = Theme.FontBold,
 				TextSize = 26,
-				Size = UDim2.new(1, -60, 0, 30),
+				Size = UDim2.new(1, -64, 1, 0),
 				AutomaticSize = Enum.AutomaticSize.None,
 			}
 		)
@@ -77,16 +81,16 @@ function MainWidget.new(options: Options): () -> ()
 	local function header(p: Theme.Palette): Frame
 		return Ui.new("Frame", {
 			BackgroundTransparency = 1,
-			Size = UDim2.new(1, 0, 0, 34),
+			Size = UDim2.new(1, 0, 0, 36),
 			LayoutOrder = 1,
 			Children = {
 				logo(p),
 				Ui.label(p, "v" .. options.version, {
-					TextColor3 = p.DimText,
+					TextColor3 = p.Text,
 					TextXAlignment = Enum.TextXAlignment.Right,
 					AnchorPoint = Vector2.new(1, 1),
 					Position = UDim2.fromScale(1, 1),
-					Size = UDim2.fromOffset(60, 18),
+					Size = UDim2.fromOffset(64, 20),
 					AutomaticSize = Enum.AutomaticSize.None,
 				}),
 			},
@@ -96,7 +100,7 @@ function MainWidget.new(options: Options): () -> ()
 	local function addressBox(p: Theme.Palette): Frame
 		local host = Ui.textbox(p, tostring(Settings.get("Host")), {
 			PlaceholderText = "127.0.0.1",
-			Size = UDim2.new(1, -80, 1, 0),
+			Size = UDim2.new(1, -84, 1, 0),
 		})
 		local port = Ui.textbox(p, tostring(Settings.get("Port")), {
 			PlaceholderText = "8080",
@@ -117,7 +121,7 @@ function MainWidget.new(options: Options): () -> ()
 			end
 			port.Text = tostring(Settings.get("Port"))
 		end)
-		local box = Ui.box(p, 2, {
+		return Ui.box(p, 2, {
 			Ui.new("Frame", {
 				BackgroundTransparency = 1,
 				Size = UDim2.new(1, 0, 0, 26),
@@ -129,18 +133,17 @@ function MainWidget.new(options: Options): () -> ()
 						TextXAlignment = Enum.TextXAlignment.Center,
 						AnchorPoint = Vector2.new(1, 0),
 						Position = UDim2.new(1, -62, 0, 0),
-						Size = UDim2.new(0, 14, 1, 0),
+						Size = UDim2.new(0, 16, 1, 0),
 						AutomaticSize = Enum.AutomaticSize.None,
 					}),
 					port,
 				},
 			}),
-		})
-		return box
+		}, true)
 	end
 
-	local function notice(p: Theme.Palette, order: number, text: string, action: string, run: () -> ()): Frame
-		return Ui.box(p, order, {
+	local function notice(p: Theme.Palette, text: string, action: string, run: () -> ()): Frame
+		return Ui.box(p, 0, {
 			Ui.list(8),
 			Ui.label(p, text, { LayoutOrder = 1 }),
 			Ui.buttons(2, {
@@ -149,10 +152,10 @@ function MainWidget.new(options: Options): () -> ()
 					if not ok then
 						warn("[Tracy-Luau] " .. tostring(err))
 					end
-					render()
+					render(false)
 				end, true),
 			}),
-		})
+		}, true)
 	end
 
 	local function setupNotices(p: Theme.Palette, children: { Instance })
@@ -161,18 +164,17 @@ function MainWidget.new(options: Options): () -> ()
 		end
 		local check = Setup.check()
 		local order = 10
-		local function add(item: Instance)
+		local function add(item: Frame)
 			order += 1
-			table.insert(children, item);
-			(item :: any).LayoutOrder = order
+			item.LayoutOrder = order
+			table.insert(children, item)
 		end
 		if not check.installed then
-			add(notice(p, 0, "Tracy isn't in this place yet.", "Insert Tracy", Setup.install))
+			add(notice(p, "Tracy isn't in this place yet.", "Insert Tracy", Setup.install))
 		elseif check.outdated then
 			add(
 				notice(
 					p,
-					0,
 					`This place has Tracy {check.version}; the plugin has {Setup.bundledVersion}.`,
 					"Update Tracy",
 					Setup.update
@@ -183,7 +185,6 @@ function MainWidget.new(options: Options): () -> ()
 			add(
 				notice(
 					p,
-					0,
 					"Allow HTTP Requests is off, so playtests can't reach the bridge.",
 					"Turn it on",
 					Setup.enableHttp
@@ -194,60 +195,79 @@ function MainWidget.new(options: Options): () -> ()
 			local wanted = Settings.bridgeUrl("/ingest")
 			local current = Setup.attribute("Url") or "http://127.0.0.1:8080/ingest"
 			if current ~= wanted then
-				add(notice(p, 0, `This place sends to {current}.`, "Send to this bridge", function()
+				add(notice(p, `This place sends to {current}.`, "Send to this bridge", function()
 					Setup.setAttribute("Url", wanted)
 				end))
 			end
 		end
 	end
 
-	local function trackRows(p: Theme.Palette, list: Frame)
-		for _, child in list:GetChildren() do
-			if child:IsA("GuiObject") then
-				child:Destroy()
-			end
-		end
+	-- Track rows are kept and updated in place; new ones fade in.
+	local function updateTracks(p: Theme.Palette, list: Frame)
 		local tracks = if status then status.tracks else {}
-		if #tracks == 0 then
-			Ui.label(p, "Press Play to start streaming.", { TextColor3 = p.DimText, Parent = list })
-			return
-		end
+		local seen = {}
 		for i, track in tracks do
+			seen[track.label] = true
 			local detail = `{thousands(track.events)} events`
 			if track.gaps > 0 then
 				detail ..= ` · {track.gaps} gaps`
 			end
-			Ui.new("Frame", {
-				BackgroundTransparency = 1,
-				Size = UDim2.new(1, 0, 0, 22),
-				LayoutOrder = i,
-				Parent = list,
-				Children = {
-					Ui.list(8, true),
-					Ui.dot(if track.active then p.Good else p.DimText),
-					Ui.label(p, track.label, {
-						Size = UDim2.new(0.55, -18, 1, 0),
-						AutomaticSize = Enum.AutomaticSize.None,
-						TextColor3 = if track.active then p.Text else p.DimText,
-						LayoutOrder = 1,
+			local row = rows[track.label]
+			if row == nil then
+				local dot = Ui.dot(if track.active then p.Good else p.DimText, track.active)
+				local name = Ui.label(p, track.label, {
+					Size = UDim2.new(0.55, -18, 1, 0),
+					AutomaticSize = Enum.AutomaticSize.None,
+					LayoutOrder = 1,
+					TextTransparency = 1,
+				})
+				local info = Ui.label(p, detail, {
+					Size = UDim2.new(0.45, 0, 1, 0),
+					AutomaticSize = Enum.AutomaticSize.None,
+					TextColor3 = p.DimText,
+					TextXAlignment = Enum.TextXAlignment.Right,
+					LayoutOrder = 2,
+					TextTransparency = 1,
+				})
+				row = {
+					frame = Ui.new("Frame", {
+						BackgroundTransparency = 1,
+						Size = UDim2.new(1, 0, 0, 22),
+						Children = { Ui.list(8, true), dot, name, info },
+						Parent = list,
 					}),
-					Ui.label(p, detail, {
-						Size = UDim2.new(0.45, 0, 1, 0),
-						AutomaticSize = Enum.AutomaticSize.None,
-						TextColor3 = p.DimText,
-						TextXAlignment = Enum.TextXAlignment.Right,
-						LayoutOrder = 2,
-					}),
-				},
-			})
+					dot = dot,
+					name = name,
+					detail = info,
+					active = track.active,
+				}
+				rows[track.label] = row
+				Ui.tween(name, { TextTransparency = 0 })
+				Ui.tween(info, { TextTransparency = 0 })
+			elseif row.active ~= track.active then
+				row.active = track.active
+				row.dot:Destroy()
+				row.dot = Ui.dot(if track.active then p.Good else p.DimText, track.active)
+				row.dot.Parent = row.frame
+			end
+			row.frame.LayoutOrder = i
+			row.name.TextColor3 = if track.active then p.Text else p.DimText
+			row.detail.Text = detail
 		end
+		for label, row in rows do
+			if not seen[label] then
+				row.frame:Destroy()
+				rows[label] = nil
+			end
+		end
+		live.empty.Visible = #tracks == 0
 	end
 
 	local function captureState(): (boolean, string?)
-		local agent = Settings.get("CaptureAgent")
 		if not (status and Bridge.serverActive(status)) then
 			return false, nil
 		end
+		local agent = Settings.get("CaptureAgent")
 		if type(agent) ~= "table" then
 			return false, "Captures start once the playtest's server is up."
 		end
@@ -267,7 +287,7 @@ function MainWidget.new(options: Options): () -> ()
 			live.summary.Text = `Bridge {status.version} · {viewer}`
 		end
 		if live.tracks then
-			trackRows(p, live.tracks)
+			updateTracks(p, live.tracks)
 		end
 		if live.capture then
 			local ready, why = captureState()
@@ -310,10 +330,25 @@ function MainWidget.new(options: Options): () -> ()
 		end
 	end
 
+	-- "Connecting", "Connecting.", ... on the Connect button while we wait.
+	local function animateConnecting(myGeneration: number)
+		task.spawn(function()
+			local dots = 0
+			while alive and generation == myGeneration and view == "connecting" do
+				if live.connect then
+					live.connect.Text = "Connecting" .. string.rep(".", dots)
+				end
+				dots = (dots + 1) % 4
+				task.wait(0.3)
+			end
+		end)
+	end
+
 	local function connect()
 		generation += 1
 		local myGeneration = generation
-		setView("connecting")
+		view = "connecting"
+		animateConnecting(myGeneration)
 		task.spawn(function()
 			local ok, result = Bridge.status(Settings.bridgeUrl(""))
 			if generation ~= myGeneration then
@@ -345,36 +380,31 @@ function MainWidget.new(options: Options): () -> ()
 		refresh()
 	end
 
-	render = function()
-		if page then
-			page:Destroy()
+	render = function(fadeIn: boolean?)
+		if holder then
+			holder:Destroy()
 		end
 		live = {}
+		rows = {}
 		local p = Theme.palette()
 		local children: { Instance } = { header(p) }
-		local helpButton = Ui.button(p, "?", options.openHelp, false, 1)
-		local settingsButton = Ui.button(p, "Settings", options.openSettings, false, 2)
+		local helpButton = Ui.iconButton(p, "?", options.openHelp, 1)
+		local settingsButton = Ui.iconButton(p, "⚙", options.openSettings, 2)
 
 		if view == "address" or view == "connecting" then
+			live.connect = Ui.button(p, "Connect", function()
+				if view == "address" then
+					connect()
+				end
+			end, true, 3)
 			table.insert(children, addressBox(p))
-			table.insert(
-				children,
-				Ui.buttons(3, {
-					helpButton,
-					settingsButton,
-					Ui.button(p, if view == "connecting" then "Connecting…" else "Connect", function()
-						if view == "address" then
-							connect()
-						end
-					end, true, 3),
-				})
-			)
+			table.insert(children, Ui.buttons(3, { helpButton, settingsButton, live.connect }))
 		elseif view == "error" then
 			table.insert(
 				children,
 				Ui.box(p, 2, {
 					Ui.label(p, errorText, { FontFace = Theme.Mono, TextSize = 18 }),
-				})
+				}, true)
 			)
 			table.insert(
 				children,
@@ -396,7 +426,7 @@ function MainWidget.new(options: Options): () -> ()
 						LayoutOrder = 1,
 						Children = {
 							Ui.list(8, true),
-							Ui.dot(p.Good),
+							Ui.dot(p.Good, true),
 							Ui.label(p, `Connected to {Settings.get("Host")}:{Settings.get("Port")}`, {
 								Size = UDim2.new(1, -18, 1, 0),
 								AutomaticSize = Enum.AutomaticSize.None,
@@ -405,10 +435,11 @@ function MainWidget.new(options: Options): () -> ()
 						},
 					}),
 					live.summary,
-				})
+				}, true)
 			)
 			setupNotices(p, children)
-			live.tracks = Ui.box(p, 30, { Ui.list(4) })
+			live.empty = Ui.label(p, "Press Play to start streaming.", { TextColor3 = p.DimText, LayoutOrder = 0 })
+			live.tracks = Ui.box(p, 30, { Ui.list(4), live.empty }, true)
 			table.insert(children, live.tracks)
 			live.captureNote = Ui.label(p, "", { TextColor3 = p.DimText, TextSize = 15, LayoutOrder = 40 })
 			table.insert(children, live.captureNote)
@@ -424,7 +455,8 @@ function MainWidget.new(options: Options): () -> ()
 			)
 		end
 
-		page = Ui.page(p, widget)
+		local page
+		page, holder = Ui.page(p, widget, fadeIn)
 		for _, child in children do
 			child.Parent = page
 		end
@@ -433,11 +465,13 @@ function MainWidget.new(options: Options): () -> ()
 		end
 	end
 
-	render()
-	local themeConnection = Theme.Changed:Connect(render)
+	render(true)
+	local themeConnection = Theme.Changed:Connect(function()
+		render(false)
+	end)
 	local enabledConnection = widget:GetPropertyChangedSignal("Enabled"):Connect(function()
-		if widget.Enabled and view == "connected" then
-			render()
+		if widget.Enabled then
+			render(true)
 		end
 	end)
 	if Settings.get("AutoConnect") then
@@ -449,8 +483,8 @@ function MainWidget.new(options: Options): () -> ()
 		generation += 1
 		themeConnection:Disconnect()
 		enabledConnection:Disconnect()
-		if page then
-			page:Destroy()
+		if holder then
+			holder:Destroy()
 		end
 	end
 end

@@ -1,12 +1,18 @@
 --!strict
 -- Small helpers for building the plugin's widgets out of plain instances.
 
+local TweenService = game:GetService("TweenService")
+
 local Theme = require(script.Parent.Theme)
 
 type Palette = Theme.Palette
 type Props = { [string]: any }
 
 local Ui = {}
+
+local QUICK = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local SMOOTH = TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local PULSE = TweenInfo.new(1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
 
 -- Creates an instance. `props.Children` (a list) are parented to it, and
 -- `props.Events` (name -> function) are connected.
@@ -34,12 +40,18 @@ function Ui.new(className: string, props: Props?): any
 	return instance
 end
 
+function Ui.tween(instance: Instance, goal: Props, info: TweenInfo?): Tween
+	local tween = TweenService:Create(instance, info or SMOOTH, goal)
+	tween:Play()
+	return tween
+end
+
 function Ui.corner(radius: number?): UICorner
 	return Ui.new("UICorner", { CornerRadius = UDim.new(0, radius or 8) })
 end
 
-function Ui.stroke(p: Palette): UIStroke
-	return Ui.new("UIStroke", { Color = p.Border, ApplyStrokeMode = Enum.ApplyStrokeMode.Border })
+function Ui.stroke(color: Color3): UIStroke
+	return Ui.new("UIStroke", { Color = color, ApplyStrokeMode = Enum.ApplyStrokeMode.Border })
 end
 
 function Ui.padding(all: number, horizontal: number?): UIPadding
@@ -58,11 +70,11 @@ function Ui.list(gap: number, horizontal: boolean?, align: Enum.HorizontalAlignm
 		Padding = UDim.new(0, gap),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		HorizontalAlignment = align or Enum.HorizontalAlignment.Left,
-		VerticalAlignment = Enum.VerticalAlignment.Center,
+		VerticalAlignment = if horizontal then Enum.VerticalAlignment.Center else Enum.VerticalAlignment.Top,
 	})
 end
 
--- A full-width row that sizes to its content.
+-- A full-width column that sizes to its content.
 function Ui.column(order: number, children: { Instance }, gap: number?): Frame
 	table.insert(children, Ui.list(gap or 6))
 	return Ui.new("Frame", {
@@ -74,13 +86,13 @@ function Ui.column(order: number, children: { Instance }, gap: number?): Frame
 	})
 end
 
--- A rounded, outlined box that sizes to its content.
-function Ui.box(p: Palette, order: number, children: { Instance }): Frame
+-- A rounded box that sizes to its content: filled, or just outlined like an input.
+function Ui.box(p: Palette, order: number, children: { Instance }, outlined: boolean?): Frame
 	table.insert(children, Ui.corner())
-	table.insert(children, Ui.stroke(p))
+	table.insert(children, Ui.stroke(if outlined then p.Outline else p.Border))
 	table.insert(children, Ui.padding(10, 12))
 	return Ui.new("Frame", {
-		BackgroundColor3 = p.Box,
+		BackgroundColor3 = if outlined then p.Background else p.Box,
 		Size = UDim2.fromScale(1, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		LayoutOrder = order,
@@ -107,8 +119,32 @@ function Ui.label(p: Palette, text: string, props: Props?): TextLabel
 	return label
 end
 
+-- Hover eases the color in; pressing shrinks the button a touch.
+local function animate(button: GuiButton, idle: Color3, hover: Color3)
+	local scale = Ui.new("UIScale", { Parent = button })
+	local inside = false
+	button.MouseEnter:Connect(function()
+		inside = true
+		Ui.tween(button, { BackgroundColor3 = hover }, QUICK)
+	end)
+	button.MouseLeave:Connect(function()
+		inside = false
+		Ui.tween(button, { BackgroundColor3 = idle }, QUICK)
+		Ui.tween(scale, { Scale = 1 }, QUICK)
+	end)
+	button.MouseButton1Down:Connect(function()
+		Ui.tween(scale, { Scale = 0.95 }, QUICK)
+	end)
+	button.MouseButton1Up:Connect(function()
+		Ui.tween(scale, { Scale = 1 }, QUICK)
+		if not inside then
+			button.BackgroundColor3 = idle
+		end
+	end)
+end
+
 function Ui.button(p: Palette, text: string, onClick: () -> (), accent: boolean?, order: number?): TextButton
-	local idle = if accent then p.Accent else p.Button
+	local idle = if accent then p.Accent else p.Background
 	local hover = if accent then p.AccentHover else p.ButtonHover
 	local button: TextButton = Ui.new("TextButton", {
 		AutoButtonColor = false,
@@ -120,15 +156,21 @@ function Ui.button(p: Palette, text: string, onClick: () -> (), accent: boolean?
 		Size = UDim2.fromOffset(0, 34),
 		AutomaticSize = Enum.AutomaticSize.X,
 		LayoutOrder = order or 0,
-		Children = { Ui.corner(), Ui.padding(0, 14), if accent then nil else Ui.stroke(p) } :: any,
+		Children = { Ui.corner(), Ui.padding(0, 14), Ui.stroke(if accent then p.AccentHover else p.Outline) },
 	})
-	button.MouseEnter:Connect(function()
-		button.BackgroundColor3 = hover
-	end)
-	button.MouseLeave:Connect(function()
-		button.BackgroundColor3 = idle
-	end)
+	animate(button, idle, hover)
 	button.Activated:Connect(onClick)
+	return button
+end
+
+-- A square button with a glyph, like Argon's "?" and gear.
+function Ui.iconButton(p: Palette, glyph: string, onClick: () -> (), order: number): TextButton
+	local button = Ui.button(p, glyph, onClick, false, order)
+	button.AutomaticSize = Enum.AutomaticSize.None
+	button.Size = UDim2.fromOffset(34, 34)
+	button.FontFace = Theme.FontBold
+	button.TextSize = 20;
+	(button:FindFirstChildOfClass("UIPadding") :: UIPadding):Destroy()
 	return button
 end
 
@@ -165,22 +207,20 @@ function Ui.toggle(p: Palette, on: boolean, onChange: (boolean) -> ()): TextButt
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Size = UDim2.fromOffset(16, 16),
 		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, if on then 21 else 3, 0.5, 0),
 		Children = { Ui.corner(8) },
 	})
 	local switch: TextButton = Ui.new("TextButton", {
 		AutoButtonColor = false,
 		Text = "",
+		BackgroundColor3 = if on then p.Accent else p.Button,
 		Size = UDim2.fromOffset(40, 22),
 		Children = { Ui.corner(11), knob },
 	})
-	local function paint()
-		switch.BackgroundColor3 = if on then p.Accent else p.Button
-		knob.Position = UDim2.new(0, if on then 21 else 3, 0.5, 0)
-	end
-	paint()
 	switch.Activated:Connect(function()
 		on = not on
-		paint()
+		Ui.tween(switch, { BackgroundColor3 = if on then p.Accent else p.Button })
+		Ui.tween(knob, { Position = UDim2.new(0, if on then 21 else 3, 0.5, 0) })
 		onChange(on)
 	end)
 	return switch
@@ -199,20 +239,27 @@ function Ui.cycle(p: Palette, options: { string }, value: string, onChange: (str
 	return button
 end
 
-function Ui.dot(color: Color3): Frame
-	return Ui.new("Frame", {
+-- A status dot; `pulse` makes it breathe.
+function Ui.dot(color: Color3, pulse: boolean?): Frame
+	local dot = Ui.new("Frame", {
 		BackgroundColor3 = color,
 		Size = UDim2.fromOffset(10, 10),
 		Children = { Ui.corner(5) },
 	})
+	if pulse then
+		Ui.tween(dot, { BackgroundTransparency = 0.55 }, PULSE)
+	end
+	return dot
 end
 
--- A scrolling page that fills its parent and stacks its children.
-function Ui.page(p: Palette, parent: Instance): ScrollingFrame
-	return Ui.new("ScrollingFrame", {
-		BackgroundColor3 = p.Background,
+-- A scrolling page that fills its parent and stacks its children. Returns the page
+-- and its holder (destroy the holder); with `fadeIn`, it eases into view.
+function Ui.page(p: Palette, parent: Instance, fadeIn: boolean?): (ScrollingFrame, CanvasGroup)
+	local page = Ui.new("ScrollingFrame", {
+		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromOffset(0, if fadeIn then 8 else 0),
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		ScrollBarThickness = 6,
@@ -221,8 +268,20 @@ function Ui.page(p: Palette, parent: Instance): ScrollingFrame
 			Ui.new("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
 			Ui.padding(12),
 		},
+	})
+	local holder = Ui.new("CanvasGroup", {
+		BackgroundColor3 = p.Background,
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1),
+		GroupTransparency = if fadeIn then 1 else 0,
+		Children = { page },
 		Parent = parent,
 	})
+	if fadeIn then
+		Ui.tween(holder, { GroupTransparency = 0 })
+		Ui.tween(page, { Position = UDim2.new() })
+	end
+	return page, holder
 end
 
 return Ui

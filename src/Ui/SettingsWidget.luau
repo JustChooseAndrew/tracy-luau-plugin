@@ -42,7 +42,7 @@ local function field(p: Palette, key: Settings.Key, parse: (string) -> any?): Te
 		BackgroundColor3 = p.Box,
 		TextSize = 15,
 	})
-	for _, child: Instance in { Ui.corner(6), Ui.stroke(p), Ui.padding(0, 8) } do
+	for _, child: Instance in { Ui.corner(6), Ui.stroke(p.Outline), Ui.padding(0, 8) } do
 		child.Parent = box
 	end
 	box.FocusLost:Connect(function()
@@ -55,13 +55,34 @@ local function field(p: Palette, key: Settings.Key, parse: (string) -> any?): Te
 	return box
 end
 
+-- A titled box whose body folds away (animated) when the title is clicked.
 local function section(p: Palette, order: number, title: string, rows: { Instance }): Frame
-	local body = Ui.column(2, rows, 12)
+	local GAP = 12
+	local body = Ui.column(1, rows, 12)
+	-- inset, so outlines (drawn just outside their boxes) aren't clipped
+	body.Size = UDim2.new(1, -4, 0, 0)
+	body.Position = UDim2.fromOffset(2, GAP)
+	local clip = Ui.new("Frame", {
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
+		Size = UDim2.fromScale(1, 0),
+		LayoutOrder = 2,
+		Children = { body },
+	})
+	local open = true
+	local function height(): UDim2
+		return UDim2.new(1, 0, 0, if open then body.AbsoluteSize.Y + GAP else 0)
+	end
+	body:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		if open then
+			clip.Size = height()
+		end
+	end)
 	local chevron = Ui.label(p, "⌃", {
-		TextXAlignment = Enum.TextXAlignment.Right,
+		TextXAlignment = Enum.TextXAlignment.Center,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),
-		Size = UDim2.fromOffset(20, 22),
+		Size = UDim2.fromOffset(22, 22),
 		AutomaticSize = Enum.AutomaticSize.None,
 	})
 	local head = Ui.new("TextButton", {
@@ -75,10 +96,11 @@ local function section(p: Palette, order: number, title: string, rows: { Instanc
 		},
 	})
 	head.Activated:Connect(function()
-		body.Visible = not body.Visible
-		chevron.Text = if body.Visible then "⌃" else "⌄"
+		open = not open
+		Ui.tween(clip, { Size = height() })
+		Ui.tween(chevron, { Rotation = if open then 0 else 180 })
 	end)
-	return Ui.box(p, order, { Ui.list(12), head, body })
+	return Ui.box(p, order, { Ui.list(0), head, clip })
 end
 
 local function globalTab(p: Palette): { Instance }
@@ -168,16 +190,18 @@ end
 
 function SettingsWidget.new(widget: DockWidgetPluginGui): () -> ()
 	local tab = "Global"
-	local page: ScrollingFrame? = nil
-	local render: () -> ()
+	local holder: CanvasGroup? = nil
+	local render: (fadeIn: boolean?) -> ()
 
 	local function tabs(p: Palette): Frame
 		local buttons = {}
 		for i, name in { "Global", "Place" } do
 			local selected = name == tab
 			local button = Ui.button(p, name, function()
-				tab = name
-				render()
+				if tab ~= name then
+					tab = name
+					render(true)
+				end
 			end, selected, i)
 			button.AutomaticSize = Enum.AutomaticSize.None
 			button.Size = UDim2.new(0.5, -4, 0, 32)
@@ -192,12 +216,13 @@ function SettingsWidget.new(widget: DockWidgetPluginGui): () -> ()
 		})
 	end
 
-	render = function()
-		if page then
-			page:Destroy()
+	render = function(fadeIn: boolean?)
+		if holder then
+			holder:Destroy()
 		end
 		local p = Theme.palette()
-		page = Ui.page(p, widget)
+		local page
+		page, holder = Ui.page(p, widget, fadeIn)
 		tabs(p).Parent = page
 		for _, child in if tab == "Global" then globalTab(p) else placeTab(p) do
 			child.Parent = page
@@ -208,14 +233,14 @@ function SettingsWidget.new(widget: DockWidgetPluginGui): () -> ()
 	local themeConnection = Theme.Changed:Connect(render)
 	local enabledConnection = widget:GetPropertyChangedSignal("Enabled"):Connect(function()
 		if widget.Enabled then
-			render()
+			render(true)
 		end
 	end)
 	return function()
 		themeConnection:Disconnect()
 		enabledConnection:Disconnect()
-		if page then
-			page:Destroy()
+		if holder then
+			holder:Destroy()
 		end
 	end
 end

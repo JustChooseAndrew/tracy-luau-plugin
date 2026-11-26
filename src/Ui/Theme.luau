@@ -7,6 +7,7 @@ export type Palette = {
 	Background: Color3,
 	Box: Color3,
 	Border: Color3,
+	Outline: Color3,
 	Text: Color3,
 	DimText: Color3,
 	Button: Color3,
@@ -31,12 +32,15 @@ end
 
 function Theme.palette(): Palette
 	local background = color(Enum.StudioStyleGuideColor.MainBackground)
+	local text = color(Enum.StudioStyleGuideColor.MainText)
 	local _, _, value = background:ToHSV()
 	return {
 		Background = background,
 		Box = color(Enum.StudioStyleGuideColor.InputFieldBackground),
 		Border = color(Enum.StudioStyleGuideColor.Border),
-		Text = color(Enum.StudioStyleGuideColor.MainText),
+		-- Argon-style outlines on inputs and buttons: visible in both themes.
+		Outline = text:Lerp(background, 0.68),
+		Text = text,
 		DimText = color(Enum.StudioStyleGuideColor.DimmedText),
 		Button = color(Enum.StudioStyleGuideColor.Button),
 		ButtonHover = color(Enum.StudioStyleGuideColor.Button, Enum.StudioStyleGuideModifier.Hover),

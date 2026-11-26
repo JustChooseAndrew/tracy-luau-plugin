@@ -32,14 +32,15 @@ local STEPS = {
 local HelpWidget = {}
 
 function HelpWidget.new(widget: DockWidgetPluginGui): () -> ()
-	local page: ScrollingFrame? = nil
+	local holder: CanvasGroup? = nil
 
-	local function render()
-		if page then
-			page:Destroy()
+	local function render(fadeIn: boolean?)
+		if holder then
+			holder:Destroy()
 		end
 		local p = Theme.palette()
-		page = Ui.page(p, widget)
+		local page
+		page, holder = Ui.page(p, widget, fadeIn)
 		Ui.label(p, "The docs, to learn more:", {
 			FontFace = Theme.FontBold,
 			TextSize = 18,
@@ -69,10 +70,16 @@ function HelpWidget.new(widget: DockWidgetPluginGui): () -> ()
 
 	render()
 	local themeConnection = Theme.Changed:Connect(render)
+	local enabledConnection = widget:GetPropertyChangedSignal("Enabled"):Connect(function()
+		if widget.Enabled then
+			render(true)
+		end
+	end)
 	return function()
 		themeConnection:Disconnect()
-		if page then
-			page:Destroy()
+		enabledConnection:Disconnect()
+		if holder then
+			holder:Destroy()
 		end
 	end
 end
