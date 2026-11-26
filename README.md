@@ -45,7 +45,7 @@ rojo build default.project.json --plugin TracyLuau.rbxm
 ## Credits
 
 Created by [JustChooseAndrew](https://github.com/JustChooseAndrew), and built alongside
-abcgameryt.
+[ABC2gameYT](https://github.com/ABC2gameYT).
 
 Tracy-Luau Plugin is MIT licensed. It's an independent project, not affiliated with or
 endorsed by Roblox, the Luau team, or the Tracy project. Luau is a trademark of Roblox
