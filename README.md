@@ -7,10 +7,8 @@ saves you the setup.
 
 ## Usage
 
-Download `TracyLuau.rbxm` from the
-[latest release](https://github.com/JustChooseAndrew/tracy-luau-plugin/releases/latest)
-and put it in your Studio plugins folder: Plugins tab → Plugins Folder. Then restart
-Studio.
+Install it from the
+[Creator Store](https://create.roblox.com/store/asset/120313821857622).
 
 1. Start `tracy-roblox-bridge`, and connect the Tracy viewer to `127.0.0.1`.
 2. Open the plugin from the Plugins tab and press **Connect**.
