@@ -38,7 +38,7 @@ function Theme.palette(): Palette
 		Background = background,
 		Box = color(Enum.StudioStyleGuideColor.InputFieldBackground),
 		Border = color(Enum.StudioStyleGuideColor.Border),
-		-- Argon-style outlines on inputs and buttons: visible in both themes.
+		-- Outlines on inputs and buttons: visible in both themes.
 		Outline = text:Lerp(background, 0.68),
 		Text = text,
 		DimText = color(Enum.StudioStyleGuideColor.DimmedText),

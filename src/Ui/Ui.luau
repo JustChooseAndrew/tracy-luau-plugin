@@ -163,7 +163,7 @@ function Ui.button(p: Palette, text: string, onClick: () -> (), accent: boolean?
 	return button
 end
 
--- A square button with a glyph, like Argon's "?" and gear.
+-- A square button with a glyph, like "?" or the gear.
 function Ui.iconButton(p: Palette, glyph: string, onClick: () -> (), order: number): TextButton
 	local button = Ui.button(p, glyph, onClick, false, order)
 	button.AutomaticSize = Enum.AutomaticSize.None
