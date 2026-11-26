@@ -12,6 +12,12 @@ It connects to `tracy-roblox-bridge`, shows what's streaming, sets places up, an
 MicroProfiler captures with one click. Tracy-Luau works without it; the plugin just
 saves you the setup.
 
+<p align="center">
+  <img alt="The plugin's main window, connected to the bridge" src="assets/screenshots/main.png" width="300">
+  &nbsp;
+  <img alt="The plugin's settings" src="assets/screenshots/settings.png" width="300">
+</p>
+
 ## Usage
 
 Install it from the
