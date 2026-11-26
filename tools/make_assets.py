@@ -7,11 +7,12 @@ The inputs are the bracket-style logo in its dark-text and light-text versions
   logo-dark.png    dark text, for Studio's light theme
   logo-light.png   light text, for Studio's dark theme
   icon.png         the blue "<_n_>" mark, square, for the toolbar button
+  store-icon.png   the mark on a dark tile, 512x512, for the Creator Store listing
 """
 import os
 import sys
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
 LOGO_WIDTH = 720
@@ -52,7 +53,7 @@ def runs(flags):
     return spans
 
 
-def icon_from(logo):
+def icon_from(logo, size):
     # The blue parts, left to right: "<", the step pulse, ">". Put them side by side.
     blue = trimmed(blue_only(logo))
     spans = [s for s in runs(columns_with_ink(blue)) if s[1] - s[0] > 8]
@@ -70,7 +71,7 @@ def icon_from(logo):
     side = int(max(width, height) * 1.12)
     square = Image.new("RGBA", (side, side), (0, 0, 0, 0))
     square.paste(mark, ((side - width) // 2, (side - height) // 2), mark)
-    return square.resize((ICON_SIZE, ICON_SIZE), Image.LANCZOS)
+    return square.resize((size, size), Image.LANCZOS)
 
 
 def main():
@@ -81,9 +82,18 @@ def main():
         logo = logo.resize((LOGO_WIDTH, round(logo.height * LOGO_WIDTH / logo.width)), Image.LANCZOS)
         logo.save(os.path.join(OUT, name))
         print(name, logo.size)
-    icon = icon_from(dark_text)
+    icon = icon_from(dark_text, ICON_SIZE)
     icon.save(os.path.join(OUT, "icon.png"))
     print("icon.png", icon.size)
+    tile = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
+    background = Image.new("RGBA", (512, 512), (27, 29, 35, 255))
+    mask = Image.new("L", (512, 512), 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, 511, 511), radius=96, fill=255)
+    tile.paste(background, (0, 0), mask)
+    mark = icon_from(dark_text, 420)
+    tile.paste(mark, (46, 46), mark)
+    tile.save(os.path.join(OUT, "store-icon.png"))
+    print("store-icon.png", tile.size)
 
 
 if __name__ == "__main__":

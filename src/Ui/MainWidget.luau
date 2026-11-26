@@ -2,6 +2,8 @@
 -- The main window: logo, bridge address, Connect, and once connected the bridge's
 -- status, the place's setup, live tracks and the Capture button.
 
+local ContentProvider = game:GetService("ContentProvider")
+
 local Assets = require(script.Parent.Parent.Assets)
 local Bridge = require(script.Parent.Parent.Bridge)
 local Settings = require(script.Parent.Parent.Settings)
@@ -55,18 +57,10 @@ function MainWidget.new(options: Options): () -> ()
 		render(changed)
 	end
 
+	-- The uploaded logo, or the logo drawn as text until (or unless) the image loads.
 	local function logo(p: Theme.Palette): Instance
-		local id = if p.IsDark then Assets.LogoForDarkTheme else Assets.LogoForLightTheme
-		if id ~= "" then
-			return Ui.new("ImageLabel", {
-				BackgroundTransparency = 1,
-				Image = id,
-				ScaleType = Enum.ScaleType.Fit,
-				Size = UDim2.new(1, -64, 1, 0),
-			})
-		end
 		local blue = hex(p.Accent)
-		return Ui.label(
+		local text = Ui.label(
 			p,
 			`<font color="{blue}">&lt;</font>Tracy<font color="{blue}">-</font>Luau<font color="{blue}">&gt;</font>`,
 			{
@@ -76,6 +70,28 @@ function MainWidget.new(options: Options): () -> ()
 				AutomaticSize = Enum.AutomaticSize.None,
 			}
 		)
+		local id = if p.IsDark then Assets.LogoForDarkTheme else Assets.LogoForLightTheme
+		if id == "" then
+			return text
+		end
+		local image = Ui.new("ImageLabel", {
+			BackgroundTransparency = 1,
+			Image = id,
+			ImageTransparency = 1,
+			ScaleType = Enum.ScaleType.Fit,
+			Size = UDim2.new(1, -64, 1, 0),
+			Children = { text },
+		})
+		text.Size = UDim2.fromScale(1, 1)
+		task.spawn(function()
+			ContentProvider:PreloadAsync({ id }, function(_, status)
+				if status == Enum.AssetFetchStatus.Success and image.Parent then
+					text.Visible = false
+					Ui.tween(image, { ImageTransparency = 0 })
+				end
+			end)
+		end)
+		return image
 	end
 
 	local function header(p: Theme.Palette): Frame
