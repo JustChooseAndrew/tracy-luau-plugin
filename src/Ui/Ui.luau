@@ -47,7 +47,7 @@ function Ui.tween(instance: Instance, goal: Props, info: TweenInfo?): Tween
 end
 
 function Ui.corner(radius: number?): UICorner
-	return Ui.new("UICorner", { CornerRadius = UDim.new(0, radius or 8) })
+	return Ui.new("UICorner", { CornerRadius = UDim.new(0, radius or 6) })
 end
 
 function Ui.stroke(color: Color3): UIStroke
@@ -90,7 +90,7 @@ end
 function Ui.box(p: Palette, order: number, children: { Instance }, outlined: boolean?): Frame
 	table.insert(children, Ui.corner())
 	table.insert(children, Ui.stroke(if outlined then p.Outline else p.Border))
-	table.insert(children, Ui.padding(10, 12))
+	table.insert(children, Ui.padding(8, 10))
 	return Ui.new("Frame", {
 		BackgroundColor3 = if outlined then p.Background else p.Box,
 		Size = UDim2.fromScale(1, 0),
@@ -106,7 +106,7 @@ function Ui.label(p: Palette, text: string, props: Props?): TextLabel
 		FontFace = Theme.Font,
 		Text = text,
 		TextColor3 = p.Text,
-		TextSize = 17,
+		TextSize = 15,
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		RichText = true,
@@ -152,11 +152,11 @@ function Ui.button(p: Palette, text: string, onClick: () -> (), accent: boolean?
 		FontFace = Theme.Font,
 		Text = text,
 		TextColor3 = if accent then p.OnAccent else p.Text,
-		TextSize = 18,
-		Size = UDim2.fromOffset(0, 34),
+		TextSize = 16,
+		Size = UDim2.fromOffset(0, 28),
 		AutomaticSize = Enum.AutomaticSize.X,
 		LayoutOrder = order or 0,
-		Children = { Ui.corner(), Ui.padding(0, 14), Ui.stroke(if accent then p.AccentHover else p.Outline) },
+		Children = { Ui.corner(), Ui.padding(0, 12), Ui.stroke(if accent then p.AccentHover else p.Outline) },
 	})
 	animate(button, idle, hover)
 	button.Activated:Connect(onClick)
@@ -167,19 +167,19 @@ end
 function Ui.iconButton(p: Palette, glyph: string, onClick: () -> (), order: number): TextButton
 	local button = Ui.button(p, glyph, onClick, false, order)
 	button.AutomaticSize = Enum.AutomaticSize.None
-	button.Size = UDim2.fromOffset(34, 34)
+	button.Size = UDim2.fromOffset(28, 28)
 	button.FontFace = Theme.FontBold
-	button.TextSize = 20;
+	button.TextSize = 17;
 	(button:FindFirstChildOfClass("UIPadding") :: UIPadding):Destroy()
 	return button
 end
 
 -- A row of buttons aligned to the right.
 function Ui.buttons(order: number, buttons: { TextButton }): Frame
-	table.insert(buttons, Ui.list(8, true, Enum.HorizontalAlignment.Right) :: any)
+	table.insert(buttons, Ui.list(6, true, Enum.HorizontalAlignment.Right) :: any)
 	return Ui.new("Frame", {
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 0, 34),
+		Size = UDim2.new(1, 0, 0, 28),
 		LayoutOrder = order,
 		Children = buttons,
 	})
@@ -193,7 +193,7 @@ function Ui.textbox(p: Palette, text: string, props: Props?): TextBox
 		Text = text,
 		TextColor3 = p.Text,
 		PlaceholderColor3 = p.DimText,
-		TextSize = 20,
+		TextSize = 17,
 		TextXAlignment = Enum.TextXAlignment.Left,
 	})
 	for key, value in props or {} do
@@ -205,22 +205,22 @@ end
 function Ui.toggle(p: Palette, on: boolean, onChange: (boolean) -> ()): TextButton
 	local knob = Ui.new("Frame", {
 		BackgroundColor3 = Color3.new(1, 1, 1),
-		Size = UDim2.fromOffset(16, 16),
+		Size = UDim2.fromOffset(14, 14),
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, if on then 21 else 3, 0.5, 0),
-		Children = { Ui.corner(8) },
+		Position = UDim2.new(0, if on then 18 else 2, 0.5, 0),
+		Children = { Ui.corner(7) },
 	})
 	local switch: TextButton = Ui.new("TextButton", {
 		AutoButtonColor = false,
 		Text = "",
 		BackgroundColor3 = if on then p.Accent else p.Button,
-		Size = UDim2.fromOffset(40, 22),
-		Children = { Ui.corner(11), knob },
+		Size = UDim2.fromOffset(34, 18),
+		Children = { Ui.corner(9), knob },
 	})
 	switch.Activated:Connect(function()
 		on = not on
 		Ui.tween(switch, { BackgroundColor3 = if on then p.Accent else p.Button })
-		Ui.tween(knob, { Position = UDim2.new(0, if on then 21 else 3, 0.5, 0) })
+		Ui.tween(knob, { Position = UDim2.new(0, if on then 18 else 2, 0.5, 0) })
 		onChange(on)
 	end)
 	return switch
@@ -235,7 +235,7 @@ function Ui.cycle(p: Palette, options: { string }, value: string, onChange: (str
 		button.Text = value .. "  ▾"
 		onChange(value)
 	end)
-	button.Size = UDim2.fromOffset(0, 30)
+	button.Size = UDim2.fromOffset(0, 26)
 	return button
 end
 
@@ -243,8 +243,8 @@ end
 function Ui.dot(color: Color3, pulse: boolean?): Frame
 	local dot = Ui.new("Frame", {
 		BackgroundColor3 = color,
-		Size = UDim2.fromOffset(10, 10),
-		Children = { Ui.corner(5) },
+		Size = UDim2.fromOffset(8, 8),
+		Children = { Ui.corner(4) },
 	})
 	if pulse then
 		Ui.tween(dot, { BackgroundTransparency = 0.55 }, PULSE)
@@ -265,8 +265,8 @@ function Ui.page(p: Palette, parent: Instance, fadeIn: boolean?): (ScrollingFram
 		ScrollBarThickness = 6,
 		ScrollBarImageColor3 = p.DimText,
 		Children = {
-			Ui.new("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
-			Ui.padding(12),
+			Ui.new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+			Ui.padding(10),
 		},
 	})
 	local holder = Ui.new("CanvasGroup", {

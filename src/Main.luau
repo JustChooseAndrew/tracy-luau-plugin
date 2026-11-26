@@ -24,15 +24,15 @@ function Main.start(plugin: Plugin, button: PluginToolbarButton?): () -> ()
 	end
 
 	local function dock(id: string, title: string, width: number, height: number): DockWidgetPluginGui
-		local info = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, width, height, 300, 180)
+		local info = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, width, height, 260, 140)
 		local widget = plugin:CreateDockWidgetPluginGui(id, info)
 		widget.Name = id
 		widget.Title = title
 		return widget
 	end
-	local main = dock("TracyLuauMain", "Tracy-Luau", 340, 240)
-	local settingsWindow = dock("TracyLuauSettings", "Tracy-Luau - Settings", 400, 460)
-	local helpWindow = dock("TracyLuauHelp", "Tracy-Luau - Help", 400, 460)
+	local main = dock("TracyLuau.Main", "Tracy-Luau", 300, 170)
+	local settingsWindow = dock("TracyLuau.Settings", "Tracy-Luau - Settings", 360, 420)
+	local helpWindow = dock("TracyLuau.Help", "Tracy-Luau - Help", 360, 420)
 
 	local stops = {
 		MainWidget.new({

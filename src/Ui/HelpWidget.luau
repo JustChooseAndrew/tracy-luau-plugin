@@ -43,7 +43,7 @@ function HelpWidget.new(widget: DockWidgetPluginGui): () -> ()
 		page, holder = Ui.page(p, widget, fadeIn)
 		Ui.label(p, "The docs, to learn more:", {
 			FontFace = Theme.FontBold,
-			TextSize = 18,
+			TextSize = 16,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			LayoutOrder = 1,
 			Parent = page,
@@ -52,16 +52,16 @@ function HelpWidget.new(widget: DockWidgetPluginGui): () -> ()
 			Ui.textbox(p, DOCS, {
 				TextEditable = false,
 				TextColor3 = p.Accent,
-				TextSize = 15,
+				TextSize = 13,
 				TextXAlignment = Enum.TextXAlignment.Center,
-				Size = UDim2.new(1, 0, 0, 20),
+				Size = UDim2.new(1, 0, 0, 18),
 			}),
 		})
 		link.Parent = page
 		for i, step in STEPS do
 			local card = Ui.box(p, 2 + i, {
 				Ui.list(4),
-				Ui.label(p, step[1], { FontFace = Theme.FontBold, TextSize = 18, LayoutOrder = 1 }),
+				Ui.label(p, step[1], { FontFace = Theme.FontBold, TextSize = 16, LayoutOrder = 1 }),
 				Ui.label(p, step[2], { TextColor3 = p.DimText, LayoutOrder = 2 }),
 			})
 			card.Parent = page

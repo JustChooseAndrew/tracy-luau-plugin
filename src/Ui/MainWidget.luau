@@ -71,7 +71,7 @@ function MainWidget.new(options: Options): () -> ()
 			`<font color="{blue}">&lt;</font>Tracy<font color="{blue}">-</font>Luau<font color="{blue}">&gt;</font>`,
 			{
 				FontFace = Theme.FontBold,
-				TextSize = 26,
+				TextSize = 21,
 				Size = UDim2.new(1, -64, 1, 0),
 				AutomaticSize = Enum.AutomaticSize.None,
 			}
@@ -81,7 +81,7 @@ function MainWidget.new(options: Options): () -> ()
 	local function header(p: Theme.Palette): Frame
 		return Ui.new("Frame", {
 			BackgroundTransparency = 1,
-			Size = UDim2.new(1, 0, 0, 36),
+			Size = UDim2.new(1, 0, 0, 28),
 			LayoutOrder = 1,
 			Children = {
 				logo(p),
@@ -90,7 +90,7 @@ function MainWidget.new(options: Options): () -> ()
 					TextXAlignment = Enum.TextXAlignment.Right,
 					AnchorPoint = Vector2.new(1, 1),
 					Position = UDim2.fromScale(1, 1),
-					Size = UDim2.fromOffset(64, 20),
+					Size = UDim2.fromOffset(56, 16),
 					AutomaticSize = Enum.AutomaticSize.None,
 				}),
 			},
@@ -100,14 +100,14 @@ function MainWidget.new(options: Options): () -> ()
 	local function addressBox(p: Theme.Palette): Frame
 		local host = Ui.textbox(p, tostring(Settings.get("Host")), {
 			PlaceholderText = "127.0.0.1",
-			Size = UDim2.new(1, -84, 1, 0),
+			Size = UDim2.new(1, -72, 1, 0),
 		})
 		local port = Ui.textbox(p, tostring(Settings.get("Port")), {
 			PlaceholderText = "8080",
 			TextXAlignment = Enum.TextXAlignment.Right,
 			AnchorPoint = Vector2.new(1, 0),
 			Position = UDim2.fromScale(1, 0),
-			Size = UDim2.new(0, 60, 1, 0),
+			Size = UDim2.new(0, 52, 1, 0),
 		})
 		host.FocusLost:Connect(function()
 			local value = string.gsub(host.Text, "%s", "")
@@ -124,16 +124,16 @@ function MainWidget.new(options: Options): () -> ()
 		return Ui.box(p, 2, {
 			Ui.new("Frame", {
 				BackgroundTransparency = 1,
-				Size = UDim2.new(1, 0, 0, 26),
+				Size = UDim2.new(1, 0, 0, 22),
 				Children = {
 					host,
 					Ui.label(p, ":", {
 						FontFace = Theme.Mono,
-						TextSize = 20,
+						TextSize = 17,
 						TextXAlignment = Enum.TextXAlignment.Center,
 						AnchorPoint = Vector2.new(1, 0),
-						Position = UDim2.new(1, -62, 0, 0),
-						Size = UDim2.new(0, 16, 1, 0),
+						Position = UDim2.new(1, -54, 0, 0),
+						Size = UDim2.new(0, 14, 1, 0),
 						AutomaticSize = Enum.AutomaticSize.None,
 					}),
 					port,
@@ -216,7 +216,7 @@ function MainWidget.new(options: Options): () -> ()
 			if row == nil then
 				local dot = Ui.dot(if track.active then p.Good else p.DimText, track.active)
 				local name = Ui.label(p, track.label, {
-					Size = UDim2.new(0.55, -18, 1, 0),
+					Size = UDim2.new(0.55, -16, 1, 0),
 					AutomaticSize = Enum.AutomaticSize.None,
 					LayoutOrder = 1,
 					TextTransparency = 1,
@@ -232,7 +232,7 @@ function MainWidget.new(options: Options): () -> ()
 				row = {
 					frame = Ui.new("Frame", {
 						BackgroundTransparency = 1,
-						Size = UDim2.new(1, 0, 0, 22),
+						Size = UDim2.new(1, 0, 0, 18),
 						Children = { Ui.list(8, true), dot, name, info },
 						Parent = list,
 					}),
@@ -403,7 +403,7 @@ function MainWidget.new(options: Options): () -> ()
 			table.insert(
 				children,
 				Ui.box(p, 2, {
-					Ui.label(p, errorText, { FontFace = Theme.Mono, TextSize = 18 }),
+					Ui.label(p, errorText, { FontFace = Theme.Mono, TextSize = 15 }),
 				}, true)
 			)
 			table.insert(
@@ -415,20 +415,20 @@ function MainWidget.new(options: Options): () -> ()
 				})
 			)
 		else
-			live.summary = Ui.label(p, "", { TextColor3 = p.DimText, TextSize = 15, LayoutOrder = 2 })
+			live.summary = Ui.label(p, "", { TextColor3 = p.DimText, TextSize = 13, LayoutOrder = 2 })
 			table.insert(
 				children,
 				Ui.box(p, 2, {
 					Ui.list(4),
 					Ui.new("Frame", {
 						BackgroundTransparency = 1,
-						Size = UDim2.new(1, 0, 0, 20),
+						Size = UDim2.new(1, 0, 0, 18),
 						LayoutOrder = 1,
 						Children = {
 							Ui.list(8, true),
 							Ui.dot(p.Good, true),
 							Ui.label(p, `Connected to {Settings.get("Host")}:{Settings.get("Port")}`, {
-								Size = UDim2.new(1, -18, 1, 0),
+								Size = UDim2.new(1, -16, 1, 0),
 								AutomaticSize = Enum.AutomaticSize.None,
 								LayoutOrder = 1,
 							}),
@@ -441,7 +441,7 @@ function MainWidget.new(options: Options): () -> ()
 			live.empty = Ui.label(p, "Press Play to start streaming.", { TextColor3 = p.DimText, LayoutOrder = 0 })
 			live.tracks = Ui.box(p, 30, { Ui.list(4), live.empty }, true)
 			table.insert(children, live.tracks)
-			live.captureNote = Ui.label(p, "", { TextColor3 = p.DimText, TextSize = 15, LayoutOrder = 40 })
+			live.captureNote = Ui.label(p, "", { TextColor3 = p.DimText, TextSize = 13, LayoutOrder = 40 })
 			table.insert(children, live.captureNote)
 			live.capture = Ui.button(p, "Capture", capture, false, 3)
 			table.insert(

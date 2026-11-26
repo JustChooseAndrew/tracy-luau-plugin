@@ -27,7 +27,7 @@ local function row(p: Palette, order: number, title: string, description: string
 				Children = {
 					Ui.list(2),
 					Ui.label(p, title, { FontFace = Theme.FontBold, LayoutOrder = 1 }),
-					Ui.label(p, description, { TextColor3 = p.DimText, TextSize = 14, LayoutOrder = 2 }),
+					Ui.label(p, description, { TextColor3 = p.DimText, TextSize = 13, LayoutOrder = 2 }),
 				},
 			}),
 			control,
@@ -37,10 +37,10 @@ end
 
 local function field(p: Palette, key: Settings.Key, parse: (string) -> any?): TextBox
 	local box = Ui.textbox(p, tostring(Settings.get(key)), {
-		Size = UDim2.fromOffset(110, 28),
+		Size = UDim2.fromOffset(100, 24),
 		BackgroundTransparency = 0,
 		BackgroundColor3 = p.Box,
-		TextSize = 15,
+		TextSize = 14,
 	})
 	for _, child: Instance in { Ui.corner(6), Ui.stroke(p.Outline), Ui.padding(0, 8) } do
 		child.Parent = box
@@ -57,8 +57,8 @@ end
 
 -- A titled box whose body folds away (animated) when the title is clicked.
 local function section(p: Palette, order: number, title: string, rows: { Instance }): Frame
-	local GAP = 12
-	local body = Ui.column(1, rows, 12)
+	local GAP = 10
+	local body = Ui.column(1, rows, 10)
 	-- inset, so outlines (drawn just outside their boxes) aren't clipped
 	body.Size = UDim2.new(1, -4, 0, 0)
 	body.Position = UDim2.fromOffset(2, GAP)
@@ -82,16 +82,16 @@ local function section(p: Palette, order: number, title: string, rows: { Instanc
 		TextXAlignment = Enum.TextXAlignment.Center,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),
-		Size = UDim2.fromOffset(22, 22),
+		Size = UDim2.fromOffset(20, 20),
 		AutomaticSize = Enum.AutomaticSize.None,
 	})
 	local head = Ui.new("TextButton", {
 		BackgroundTransparency = 1,
 		Text = "",
-		Size = UDim2.new(1, 0, 0, 22),
+		Size = UDim2.new(1, 0, 0, 20),
 		LayoutOrder = 1,
 		Children = {
-			Ui.label(p, title, { FontFace = Theme.FontBold, TextSize = 18, AutomaticSize = Enum.AutomaticSize.None }),
+			Ui.label(p, title, { FontFace = Theme.FontBold, TextSize = 16, AutomaticSize = Enum.AutomaticSize.None }),
 			chevron,
 		},
 	})
@@ -182,7 +182,7 @@ local function placeTab(p: Palette): { Instance }
 		}),
 		Ui.label(p, "Saved with the place, as attributes on ReplicatedStorage.Tracy.", {
 			TextColor3 = p.DimText,
-			TextSize = 14,
+			TextSize = 13,
 			LayoutOrder = 2,
 		}),
 	}
@@ -204,13 +204,13 @@ function SettingsWidget.new(widget: DockWidgetPluginGui): () -> ()
 				end
 			end, selected, i)
 			button.AutomaticSize = Enum.AutomaticSize.None
-			button.Size = UDim2.new(0.5, -4, 0, 32)
+			button.Size = UDim2.new(0.5, -3, 0, 28)
 			table.insert(buttons, button)
 		end
-		table.insert(buttons, Ui.list(8, true) :: any)
+		table.insert(buttons, Ui.list(6, true) :: any)
 		return Ui.new("Frame", {
 			BackgroundTransparency = 1,
-			Size = UDim2.new(1, 0, 0, 32),
+			Size = UDim2.new(1, 0, 0, 28),
 			LayoutOrder = 0,
 			Children = buttons,
 		})
