@@ -1,4 +1,11 @@
-# Tracy-Luau Plugin
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-light.png">
+    <img alt="Tracy-Luau" src="assets/logo-dark.png" width="480">
+  </picture>
+  <br>
+  Studio Plugin
+</h1>
 
 A Roblox Studio plugin for [Tracy-Luau](https://github.com/JustChooseAndrew/tracy-luau).
 It connects to `tracy-roblox-bridge`, shows what's streaming, sets places up, and takes
